@@ -9,7 +9,11 @@ import platform
 import pandas as pd
 import subprocess
 import torch.backends.cudnn as cudnn
+
 from torch.utils.mobile_optimizer import optimize_for_mobile
+# 修改处(pytorch1.4.0) 未完成,下面代码可能出错
+# import torch.utils.mobile_optimizer as mobile_optimizer
+
 
 from boxmot.utils.checks import TestRequirements
 tr = TestRequirements()

@@ -33,10 +33,10 @@ if __name__ == "__main__":
     #   'heatmap'           表示进行预测结果的热力图可视化，详情查看下方注释。
     #   'export_onnx'       表示将模型导出为onnx，需要pytorch1.7.1以上。
     #----------------------------------------------------------------------------------------------------------#
-    #mode = "video"
+    mode = "video"
     #mode = "predict"
     #mode = "quantize"
-    mode = "detect_video"
+    #mode = "detect_video"
     #-------------------------------------------------------------------------#
     #   crop                指定了是否在单张图片预测后对目标进行截取
     #   count               指定了是否进行目标的计数
@@ -56,8 +56,8 @@ if __name__ == "__main__":
     #   video_path、video_save_path和video_fps仅在mode='video'时有效
     #   保存视频时需要ctrl+c退出或者运行到最后一帧才会完成完整的保存步骤。
     #----------------------------------------------------------------------------------------------------------#
-    video_path      = 'boat4.mp4'
-    video_save_path = "boat_new.mp4"
+    video_path      = 'v4cut100_150.mp4'
+    video_save_path = "v4cut100_150_output.mp4"
     video_fps       = 25.0
     #----------------------------------------------------------------------------------------------------------#
     #   test_interval       用于指定测量fps的时候，图片检测的次数。理论上test_interval越大，fps越准确。
@@ -218,6 +218,31 @@ if __name__ == "__main__":
            print("Save processed video to the path :" + video_save_path)
            out.release()
        cv2.destroyAllWindows()
+       
+    elif mode == "detect_video":
+        capture = cv2.VideoCapture(video_path)
+        
+        ref, frame = capture.read()
+        if not ref:
+           raise ValueError("未能正确读取摄像头（视频），请注意是否正确安装摄像头（是否正确填写视频路径）。")
+
+        fps = 0.0
+        color = (0, 0, 255)  # BGR
+        thickness = 2
+        fontscale = 0.5
+        count = 0
+        while(True):
+            # 时间起始
+            t1 = time.time()
+            # 读取图片
+            ref, im_cv2 = capture.read()
+            if not ref:
+                break
+            # 转换为Image
+            im = Image.fromarray(np.uint8(im_cv2))
+           
+            detections = yolo.track(im) # detections存入xmin,ymin,xmax,ymax ,conf ,cls
+           
 
     else:
         raise AssertionError("Please specify the correct mode: 'predict', 'video', 'fps', 'heatmap', 'export_onnx', 'dir_predict'.")
