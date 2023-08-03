@@ -44,11 +44,11 @@ class YOLO(object):
         #---------------------------------------------------------------------#
         #   只有得分大于置信度的预测框会被保留下来
         #---------------------------------------------------------------------#
-        "confidence"        : 0.6,
+        "confidence"        : 0.3,
         #---------------------------------------------------------------------#
         #   非极大抑制所用到的nms_iou大小
         #---------------------------------------------------------------------#
-        "nms_iou"           : 0.3,
+        "nms_iou"           : 0.1,
         #---------------------------------------------------------------------#
         #   该变量用于控制是否使用letterbox_image对输入图像进行不失真的resize，
         #   在多次测试后，发现关闭letterbox_image直接resize的效果更好
@@ -333,12 +333,14 @@ class YOLO(object):
             #   将图像输入网络当中进行预测！
             #---------------------------------------------------------#
             outputs = self.net(images)
+            print(len(outputs))
             outputs = self.bbox_util.decode_box(outputs)
             #---------------------------------------------------------#
             #   将预测框进行堆叠，然后进行非极大抑制
             #---------------------------------------------------------#
             results = self.bbox_util.non_max_suppression(torch.cat(outputs, 1), self.num_classes, self.input_shape, 
                         image_shape, self.letterbox_image, conf_thres = self.confidence, nms_thres = self.nms_iou)
+            # print(results) # NMS后每种目标只留一个框
             # 若没有检测到目标,返回原图        
             if results[0] is None: 
                 return image
@@ -346,7 +348,8 @@ class YOLO(object):
             top_label   = np.array(results[0][:, 6], dtype = 'int32')
             top_conf    = results[0][:, 4] * results[0][:, 5]
             top_boxes   = results[0][:, :4]
-  
+
+        cls_boxes = []
         for i, c in list(enumerate(top_label)):
             cls = self.class_names[int(c)] # 种类
             box             = top_boxes[i] 
@@ -360,7 +363,10 @@ class YOLO(object):
             xmin    = max(0, np.floor(xmin).astype('int32'))
             ymin  = min(image.size[1], np.floor(ymin).astype('int32'))
             xmax   = min(image.size[0], np.floor(xmax).astype('int32')) # image.size[0]是图片宽度
-            print(cls,xmin,ymin,xmax,ymax)
+            
+            boxes = [xmin,ymin,xmax,ymax,conf,cls]
+            cls_boxes.append(boxes)
+            #print(cls_boxes)
         # #---------------------------------------------------------#
         # #   设置字体与边框厚度
         # #---------------------------------------------------------#
@@ -438,7 +444,7 @@ class YOLO(object):
         #     draw.text(text_origin, str(label,'UTF-8'), fill=(0, 0, 0), font=font)
         #     del draw
 
-        return xmin,ymin,xmax,ymax,conf,cls
+        return cls_boxes
     
     def get_FPS(self, image, test_interval):
         image_shape = np.array(np.shape(image)[0:2])

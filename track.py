@@ -159,53 +159,58 @@ if __name__ == "__main__":
            im = Image.fromarray(np.uint8(im_cv2))
            
            detections = yolo.track(im) # detections存入xmin,ymin,xmax,ymax ,conf ,cls
-           
+           print(detections)
            # 若没有检测到目标(待优化,遮挡等)
            if isinstance(detections,Image.Image) :
                # ts = tracker.update([],im_cv2)
                print('no detections!')
            else : 
-               # 目前只写单目标,(待优化为多目标)
                # boat类别我直接取定值0(待优化)
                # dets = np.array([[ymax, xmin, ymin, xmax,conf,0]])
-               detections = list(detections) # xmin,ymin,xmax,ymax,conf,cls
-               det = [detections[0],detections[1],detections[2],detections[3],detections[4],0] # 需要是xyxy格式
-               dets = [det]
-               dets = np.array(dets)
-               # 更新tracker
-               ts = tracker.update(dets, im_cv2)
-               print(count,"Tracker更新完毕!")
-               # 取跟踪更新值
-               xyxys = ts[:, 0:4].astype('int') # float64 to int
-               print('xyxys:',xyxys)
-               ids = ts[:, 4].astype('int') # float64 to int
-               confs = ts[:, 5]
-               clss = ts[:, 6]
+               # detections 内容为xmin,ymin,xmax,ymax,conf,cls
+                dets = []
+                # ---------------------- #
+                detections_np = np.array(detections) # 本来是这步可以直接输入tracker.update(),但是种类这边会出问题。先用下面的处理代替
+                # ---------------------- #
+                for detection in detections:
+                    det = [[detection[0],detection[1],detection[2],detection[3],detection[4],0]] # detection[5]是种类,未加入(待优化,在ocsort.py里,种类在kalman滤波器里还要用到)
+                    print('det:',det)
+                    det_np = np.array(det)
+                
+                    # 更新tracker
+                    ts = tracker.update(det_np, im_cv2)
+                    print(count,"Tracker更新完毕!")
+                    # 取跟踪更新值
+                    xyxys = ts[:, 0:4].astype('int') # float64 to int
+                    # print('xyxys:',xyxys)
+                    ids = ts[:, 4].astype('int') # float64 to int
+                    confs = ts[:, 5]
+                    clss = ts[:, 6]
 
-           # 画画
-           if ts.shape[0] != 0:
-               for xyxy, id, conf, cls in zip(xyxys, ids, confs, clss):
-                   im_cv2 = cv2.rectangle(
-                   im_cv2,
-                   (xyxy[0], xyxy[1]),
-                   (xyxy[2], xyxy[3]),
-                   color,  
-                   thickness
-           )
-               cv2.putText(
-               im_cv2,
-               f'id: {id}, conf: {conf}, c: {cls}',
-               (xyxy[0], xyxy[1]-10),
-               cv2.FONT_HERSHEY_SIMPLEX,
-               fontscale,
-               color,
-               thickness
-           )
+                    # 画画
+                    if ts.shape[0] != 0:
+                        for xyxy, id, conf, cls in zip(xyxys, ids, confs, clss):
+                            im_cv2 = cv2.rectangle(
+                            im_cv2,
+                            (xyxy[0], xyxy[1]),
+                            (xyxy[2], xyxy[3]),
+                            color,  
+                            thickness
+                    )
+                        cv2.putText(
+                        im_cv2,
+                        f'id: {id}, conf: {conf}, c: {cls}',
+                        (xyxy[0], xyxy[1]-10),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        fontscale,
+                        color,
+                        thickness
+                    )
 
-           if video_save_path!="":
-               out.write(im_cv2)
-               print('真的有画进去!')
-               count +=1
+                    if video_save_path!="":
+                        out.write(im_cv2)
+                        print('真的有画进去!')
+                        count +=1
 
            if cv2.waitKey(1) & 0xFF == ord('q'):
                break
